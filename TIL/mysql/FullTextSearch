@@ -4,34 +4,131 @@
 B-tree index (일반적인 index)
 
 Full-text Index
- - 한 컬럼 안에서 많은 형태의 데이터가 담겨있어서, 효율적으로 데이터를 찾는 경우 사용함.
- - 사용자가 쓰기 나름인 데이터를 토큰 단위로 쪼개서 검색에 용이하게함.
- - 한글, 영어, 숙자가 섞여있거나 긴 내용 검색 시 사용.
+    - 한 컬럼 안에서 많은 형태의 데이터가 담겨있어서, 효율적으로 데이터를 찾는 경우 사용함.
+    - 사용자가 쓰기 나름인 데이터를 토큰 단위로 쪼개서 검색에 용이하게함.
+    - 한글, 영어, 자가 섞여있거나 긴 내용 검색 시 사용.
 
  1. built-in parser OR stop-word parser
-  - stop-word 기법을 사용하는 기본 내장 파서(built-in parser)이용.
-  - stop-word는 토큰을 나눌 때 해당하는 stop-word가 나타났을 때 기준으로 토큰을 나눈다.
+    - stop-word 기법을 사용하는 기본 내장 파서(built-in parser)이용.
+    - stop-word는 토큰을 나눌 때 해당하는 stop-word가 나타났을 때 기준으로 토큰을 나눈다.
 
-  * input text : "나는 훠궈를 좋아한다"
-  * stop-word : "" (공백. 공백은 디폴트 값) 일반적으로 쉼표 또는 한국어의 조사를 사용함.
-  * Token : 나는 | 훠궈를 | 좋아한다
-  * 공백을 기준으로 3개 토큰이 인덱싱 되었음.
+    * input text : "나는 훠궈를 좋아한다"
+    * stop-word : "" (공백. 공백은 디폴트 값) 일반적으로 쉼표 또는 한국어의 조사를 사용함.
+    * Token : 나는 | 훠궈를 | 좋아한다
+    * 공백을 기준으로 3개 토큰이 인덱싱 되었음.
 
-stop-word 는 문서의 본문으로 부터 키워드를 추출해 내는 작업이 추가로 필요 할 뿐, 내부적으로는 B-tree 인덱스를 그대로 사용함.
-stop-word 인덱스의 많은 부분은 B-tree 특성을 따르지만, 전문 검색 엔진을 통해 조회되는 레코드는 검색어나 본문 내용으로 정렬되어 조회 되지 않는다.
-전문 검색에서 결과의 정렬을 Match percent(일치율) 높은 순으로 출력.
-stop-word는 문장 기호 뿐 아니라 특정 단어를 지정 할 수도 있음.
+    * stop-word 는 문서의 본문으로 부터 키워드를 추출해 내는 작업이 추가로 필요 할 뿐, 내부적으로는 B-tree 인덱스를 그대로 사용함.
+    * stop-word 인덱스의 많은 부분은 B-tree 특성을 따르지만, 전문 검색 엔진을 통해 조회되는 레코드는 검색어나 본문 내용으로 정렬되어 조회 되지 않는다.
+    * 전문 검색에서 결과의 정렬을 Match percent(일치율) 높은 순으로 출력.
+    * stop-word 는 문장 기호 뿐 아니라 특정 단어를 지정 할 수도 있음.
 
-지정된 규칙이 없는 전문도 분석/검색이 가능하게 하는 방법이 N-gram 방식
-stop-word 방식에 비해 인덱싱 알골이 복잡하고, 인덱스의 크기도 크다.
-일반적으로는 2글자 단위로 키워드를 쪼개서, 2-Gram 방식 많이 사용
+    * stop-word 방식의 경우엔, 구분자 기준으로 왼쪽 일치 기준으로 검색을 실행하기 때문에 "반바지" 검색 시 "나이키반바지"를 검색하면 안됨.
+    * 이런 제약은 이커머스와 같은 웹서비스에는 좋지 않다.
 
-stop-word 방식의 경우엔,  구분자 기준으로 왼쪽 일치 기준으로 검색을 실행하기 때문에 "아이폰" 검색 시 "애플아이폰" 을 검색하면 안됨..
-이런 제약은 이커머스와 같은 웹서비스에는 좋지 않다...
+ 2. N-gram parser (mysql 5.6 부터는 InnoDB 지원, 그 이하는 MyISAM 엔진만 가능)
+    * 지정된 규칙이 없는 전문도 분석/검색이 가능하게 하는 방법이 N-gram 방식.
+    * 할당한 토큰의 크기 n만큼씩 데이터를 인덱스로 파싱해두었다가 사용하는 파서.
+    * stop-word 방식에 비해 인덱싱 알골이 복잡하고, 인덱스의 크기도 크다.
+    * 일반적으로는 2글자 단위로 키워드를 쪼개서, 2-Gram 방식 많이 사용.
+    * N-gram 방식의 인덱스는 인덱스 생성 과정이 복잡하므로, 전문 인덱스에 키워드를 추가하거나, 삭제하는 시간도 많이 걸린다.
+    * 전문 검색을 수행하는데 걸리는 시간은 2-Gram 알고리즘의 트리톤이 2~3배 이상 빠르며 클라이언트 동시 실행 쿼리가 많아질 수록 차이는 더 벌어짐.
+    * 최소 문자열 제한이 있으므로 4자 이하의 검색어는 작동되지 않는다. (?) http://jacob-yo.net/wp_jacob_main/mysql-fulltext/
+    * my.cnf 파일을 수정해 줘야함 ft_min_word_len = 2로 수정 필요.
 
-N-gram 방식의 인덱스는 인덱스 생성 과정이 복잡하므로, 전문 인덱스에 키워드를 추가하거나, 삭제하는 시간도 많이 걸린다.
-하지만 전문 검색을 수행하는데 걸리는 시간은 2-Gram 알고리즘의 트리톤이 2~3배 이상 빠르며,
-클라이언트 동시 실행 쿼리가 많아질 수록 차이는 더 벌어짐.
+    * AWS에서 지원해주는 mysql을 사용ㅎㅏ기 때문에 my.cnf 파일을 수정 할 수 있는 권한이 없다.
+    * 그래서 AWS의 RDS에서 수정을 해야함. (DEV, STG가 나눠있지 않음)
+    * RDS 설정을 수정 후, 장비 RESTART 해야함.
+
+    AWS-RDS 란? http://www.qukihub.com/post/aws-rds-1
+
+    * input text : "나는 훠궈를 좋아한다"
+    * N-gram : n=2
+    * Token : 나는|는 | 훠|훠궈|궈를|를 | 좋|좋아|아한|한다
+
+    * N-gram의 단점은 색인어 갯수가 많아진다는 것
+    * 색인어가 많아진다는 것 -> 인덱스 크기가 커지고, 만드는데도 오래걸리는걸 의미함
+    * 인덱스 크기가 커진다는 결점 대문에 웹 전체를 대상으로 하는 검색엔진에서 N-gram 인덱스 방식이 사용하지 않게됨.
+
+
+  * 기존의 테이블에 인덱스를 추가하기
+    - ALTER TABLE  테이블명 ADD INDEX(필드명(크기));
+    - mysql> ALTER TABLE temp ADD INDEX(keyword(20));
+
+    - InnoDB에서 N-gram parser 이용하기
+
+    mysql> CREATE TABLE articles
+    (
+            FTS_DOC_ID BIGINT UNSIGNED AUTO_INCREMENT NOT NULL PRIMARY KEY,
+            title VARCHAR(100),
+            FULLTEXT INDEX ngram_idx(title) WITH PARSER ngram
+    ) Engine=InnoDB CHARACTER SET utf8mb4;
+    Query OK, 0 rows affected (1.26 sec)
+
+    mysql> # ALTER TABLE articles ADD FULLTEXT INDEX ngram_idx(title) WITH PARSER ngram;
+    mysql> # CREATE FULLTEXT INDEX ngram_idx ON articles(title) WITH PARSER ngram;
+
+    실제 적용한 쿼리문
+    ALTER TABLE 테이블명 ADD FULLTEXT INDEX 인덱스명(컬럼명) WITH PARSER ngram;
+
+
+    - Query OK, 554604 rows affected (1.31 sec)
+    - Records: 554604  Duplicates: 0  Warnings: 0
+    - 출처: http://ra2kstar.tistory.com/96 [초보개발자 이야기.]
+
+
+     -- 13.2 ms taking, 1 rows
+     select * from 테이블명 where content like '%나이키 반바지%';
+
+     -- 17.2ms, 5 rows
+     select * from 테이블명 where match(`content`) AGAINST('나이키 반바지' IN BOOLEAN MODE);
+
+     * 자연어 검색 : 나이키와 반바지를 OR 검색함.
+     select * from 테이블명 where match(`content`) AGAINST('나이키 반바지');
+
+     정확도에 따라 DESC로 결과가 표시됨.
+     자연어 검색에서 여러 단어를 검색어로 사용한 경우 먼저 구문을 단어 단위로 분할한 후, 해당 단더 중 1개라도 포함된 행을 검색한다.
+     그래서 관련성이 낮은 결과가 검색되게된다.
+
+
+    * boolean mode 검색
+        : 검색의 정확도에 따라 결과가 정렬되지않음.
+        : 구문 검색이 가능하다.
+        : 필수(+), 예외(-), 부분(*) 연산자 사용이 가능하다.
+
+    - 나이키와 반바지를 AND 검색함.
+    select * from 테이블명 where match(`content`) AGAINST('+"나이키"+"반바지"' IN BOOLEAN MODE);
+
+    - 나이키 & 반바지 동시에 들어간게 우선, 그 이후 반바지만 들어간 것이 이어짐.
+    select * from 테이블명 where match(`content`) AGAINST('"나이키"+"반바지"' IN BOOLEAN MODE);
+
+    - 고객 들어간 검색 데이터 중, 반바지라는 단어를 빼고 검색.
+    select * from 테이블명 where match(`content`) AGAINST('"고객" -상품' IN BOOLEAN MODE);
+
+    - 자연어 검색으로 검색 시 아래의 쿼리를 돌리면 "반품"뒤에 조사가 붙는 데이터는 검색이 불가함.
+    select * from 테이블명 where match(`content`) AGAINST('반품');
+
+    - 이런건 불린 모드로 부분 검색 연산자를 사용하면 검색이 가능하다.
+    select * from 테이블명 where match(`content`) AGAINST('반품*' IN BOOLEAN MODE);
+
+
+    - 일치도를 확인 할 수 있는 쿼리
+        select  content,
+                match(`content`) AGAINST('"나이키"+"반바지"' IN BOOLEAN MODE) as score
+        from    테이블명
+        where   match(`content`) AGAINST('"나이키"+"반바지"' IN BOOLEAN MODE);
+
+    select * from 테이블명 where match(`content`) AGAINST('나이키 반바지' IN BOOLEAN MODE);
+
+    * Full-text search를 하려면, Full-text index 부터 생성해야한다.
+    * 한글 검색은 UTF-8만 지원된다.
+    * 인덱스 생성 후 전용 함수를 이용하여 검색한다. match(), against()
+
+    아래와 같은 검색을 지원함.
+    1. 자연어 전체 텍스트 검색(Natual Language Full-Text Search)
+    2. 불린 전체 텍스트 검색(Boolean Full-Text Search)
+    3. 검색어 확장을 통한 전체 텍스트 검색(Full-Text Searches with Query Expansion)
+
+    출처) http://wisewiz.net/2017/09/05/mysql-%EC%A0%84%EC%B2%B4-%ED%85%8D%EC%8A%A4%ED%8A%B8-%EA%B2%80%EC%83%89full-text-search/
 
 // 출처 : http://interconnection.tistory.com/95
 // 아직 다 이해 못 함. 다시 정리 필요.
