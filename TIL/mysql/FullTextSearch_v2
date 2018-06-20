@@ -1,0 +1,43 @@
+기존 사용하던 ElasticSearch 에서 FullTextSearch 로 바꾸었다.
+ElasticSearch의 사전에 단어를 등록하지 않아 다수의 상품이 검색 되지 않는 이슈가 있었고,
+개발팀은 사전 등록에 할애 할 시간이 없어 검색률이 현저히 떨어졌다.
+
+현 시점에서 가장 빠르게 작업할 수 있는 방안을 찾은 결과 Full-text search 라는 기술이었다.
+
+가장 큰 이슈 중 하나가 "검색 결과가 없다." 이었기 때문에,
+입력한 검색어 하나라도 존재하면 결과를 뿌려주는 자연어 전체 텍스트 검색(Natual Language Full-Text Search)을 사용하였다.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+문제점
+    1.상품의 상태(판매중, 비노출 등등...)이 업데이트 될 때 마다 full-text search index 의 데이터도 같이 바뀌어야 한다는 것이었다.
+
+
+해결 방안
+    1. @Scheduled annotaion을 사용하여 반복적으로 index_temp table create.
+    2. 상품 데이터를 index_temp 테이블에 insert.
+    3. 서버에서 보는 index table drop.
+    4. RENAME TABLE index_temp to index.
+
+    // FIXME: table drop 하는 과정으로 인해 검색 결과가 없어 Error 발생 -> drop 후 바로 rename 하지만.. 적은 확률이어도 발생 가능성 충분히 있음.
+    // FIXME: create temp -> insert into temp -> create view_temp -> rename temp to index -> rename temp to index
+    //
+
+org.springframework.http.converter.HttpMessageNotReadableException: Could not read JSON: No content to map due to end-of-input
+에러발생!!!
+ --> 정확한 원인 파악 필요....
+     public ResponseEntity<?> insertEventHistory(@RequestBody EventHistoryVO eventHistory){
+ ResponseEntity에서 VO 정해준걸 ? 로 바꿨더니 정상 동작함
