@@ -1,0 +1,47 @@
+
+// 난생 처음 php로 개발을 해보았다.
+// 기존의 Admin 새로운 기능을 추가하는 방식
+
+사용한 IDE -> sublime text2
+
+
+1. class 에서 db에 커넥션을 맺어 데이터를 긁어오는데, 이 때 select 해 온 row 가 하나 일 경우, sql_fetch 라는 함수를 씀
+
+    ex) $data = $this->dbcon->sql_fetch($query);
+
+    * sql_fetch 함수안에 들어가는 $query는 쿼리 스트링이 담겨진 변수
+
+
+
+2. select 한 row가 여러 개 일 경우엔, query 함수를 쓴다
+
+    ex) $data = $this->dbcon->query($query);
+
+    while($row = $this->dbcon->sql_fetch_array($data)){
+        $data['rows'][] = $row;
+    }
+
+
+3. html 에서 php 함수를 이용 할 경우
+    * <?php if(data == 0) ?> 이런 식으로 사용함.
+
+
+
+4. view에서 ajax로 데이터 보내는 방법
+    * 입력폼에 담는다. <input type="hidden" value="<?=$_GET["sendData"]?>">
+    * 입력폼.ajaxForm(options).submit(); 로 던진다.
+    * options 에 url, type 정의..
+
+
+
+* 급하게 작업하여 완벽히 파악을 못한 단계
+    - jqxGrid에서 조건 별 select/insert/update 정도 까지 구현함
+
+    - s3에 이미지 업로드는 못했음 파악이 필요하다.....
+
+
+
+
+
+
+
