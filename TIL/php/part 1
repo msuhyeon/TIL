@@ -40,8 +40,8 @@
     - s3에 이미지 업로드는 못했음 파악이 필요하다.....
 
 
-
-
-
-
+* type=file 로 input 태그 하나 생성한다
+    - input tag 값이 change 될 경우에 이벤트를 잡는다.
+    - var reader = new FileReader() 선언하고.. 로드 되면 .html()로 화면에 띄운다.
+    - readAsDataURL() 에다가... this.files[0] 값을 넘긴다.
 
